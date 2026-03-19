@@ -47,8 +47,34 @@ class GameStateFeatures:
             state: A given game state object
         """
 
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        # Pacman's current position
+        self.pacmanPosition = state.getPacmanPosition()
+
+        # Tuple of ghost positions
+        self.ghostPositions = tuple(state.getGhostPositions())
+
+        # Tuple of food locations
+        self.foodPositions = tuple(sorted(state.getFood().asList()))
+
+        # Current score
+        self.score = state.getScore()
+
+        def __eq__(self, other):
+            """
+            Two feature states are equal if their board features match.
+            """
+            return (
+                isinstance(other, GameStateFeatures) and
+                self.pacmanPostion == other.pacmanPosition and
+                self.ghostPositions == other.ghostPositions and
+                self.foodPositions == other.foodPositions
+            )
+        
+        def __hash__(self):
+            """
+            The hash of a feature state is the hash of its features. For use as a dictionary key for Q-values and counts. 
+            """
+            return hash((self.pacmanPosition, self.ghostPositions, self.foodPositions))
 
 
 class QLearnAgent(Agent):
