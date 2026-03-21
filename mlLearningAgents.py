@@ -59,13 +59,16 @@ class GameStateFeatures:
         # Current score
         self.score = state.getScore()
 
+        self.qValue = {}
+        self.count = {}     #keeps track of how many times we've tried a specific move 
+
         def __eq__(self, other):
             """
             Two feature states are equal if their board features match.
             """
             return (
                 isinstance(other, GameStateFeatures) and
-                self.pacmanPostion == other.pacmanPosition and
+                self.pacmanPosition == other.pacmanPosition and
                 self.ghostPositions == other.ghostPositions and
                 self.foodPositions == other.foodPositions
             )
@@ -164,7 +167,7 @@ class QLearnAgent(Agent):
             Q(state, action)
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        return self.qValues.get((state, action), 0.0)
 
     # WARNING: You will be tested on the functionality of this method
     # DO NOT change the function signature
