@@ -60,7 +60,7 @@ class GameStateFeatures:
         self.score = state.getScore()
 
         self.qValue = {}
-        self.count = {}     #keeps track of how many times we've tried a specific move 
+        self.counts = {}     #keeps track of how many times we've tried a specific move 
 
         def __eq__(self, other):
             """
@@ -230,7 +230,7 @@ class QLearnAgent(Agent):
             Number of times that the action has been taken in a given state
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        return self.counts.get((state, action), 0)
 
     # WARNING: You will be tested on the functionality of this method
     # DO NOT change the function signature
