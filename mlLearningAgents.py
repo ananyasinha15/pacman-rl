@@ -59,25 +59,22 @@ class GameStateFeatures:
         # Current score
         self.score = state.getScore()
 
-        self.qValue = {}
-        self.counts = {}     #keeps track of how many times we've tried a specific move 
-
-        def __eq__(self, other):
-            """
-            Two feature states are equal if their board features match.
-            """
-            return (
-                isinstance(other, GameStateFeatures) and
-                self.pacmanPosition == other.pacmanPosition and
-                self.ghostPositions == other.ghostPositions and
-                self.foodPositions == other.foodPositions
-            )
-        
-        def __hash__(self):
-            """
-            The hash of a feature state is the hash of its features. For use as a dictionary key for Q-values and counts. 
-            """
-            return hash((self.pacmanPosition, self.ghostPositions, self.foodPositions))
+    def __eq__(self, other):
+        """
+        Two feature states are equal if their board features match.
+        """
+        return (
+            isinstance(other, GameStateFeatures) and
+            self.pacmanPosition == other.pacmanPosition and
+            self.ghostPositions == other.ghostPositions and
+            self.foodPositions == other.foodPositions
+        )
+    
+    def __hash__(self):
+        """
+        The hash of a feature state is the hash of its features. For use as a dictionary key for Q-values and counts. 
+        """
+        return hash((self.pacmanPosition, self.ghostPositions, self.foodPositions))
 
 
 class QLearnAgent(Agent):
@@ -110,6 +107,9 @@ class QLearnAgent(Agent):
         self.numTraining = int(numTraining)
         # Count the number of games we have played
         self.episodesSoFar = 0
+
+        self.qValues = {}
+        self.counts = {}     #keeps track of how many times we've tried a specific move 
 
     # Accessor functions for the variable episodesSoFar controlling learning
     def incrementEpisodesSoFar(self):
