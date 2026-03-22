@@ -179,8 +179,10 @@ class QLearnAgent(Agent):
         Returns:
             q_value: the maximum estimated Q-value attainable from the state
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        # Returns the maximum Q-value over all possible actions in a state.
+        # Unseen actions default to Q = 0 via getQValue.
+        actions = [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]
+        return max(self.getQValue(state, a) for a in actions)
 
     # WARNING: You will be tested on the functionality of this method
     # DO NOT change the function signature
@@ -262,8 +264,12 @@ class QLearnAgent(Agent):
         Returns:
             The exploration value
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        # Encourages exploration by prioritising actions tried fewer than maxAttempts times.
+        # Otherwise returns the estimated utility(greedy behaviour).
+
+        if counts < self.maxAttempts:
+            return float("inf")
+        return utility
 
     # WARNING: You will be tested on the functionality of this method
     # DO NOT change the function signature
