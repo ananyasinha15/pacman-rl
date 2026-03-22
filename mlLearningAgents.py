@@ -59,25 +59,22 @@ class GameStateFeatures:
         # Current score
         self.score = state.getScore()
 
-        self.qValue = {}
-        self.counts = {}     #keeps track of how many times we've tried a specific move 
-
-        def __eq__(self, other):
-            """
-            Two feature states are equal if their board features match.
-            """
-            return (
-                isinstance(other, GameStateFeatures) and
-                self.pacmanPosition == other.pacmanPosition and
-                self.ghostPositions == other.ghostPositions and
-                self.foodPositions == other.foodPositions
-            )
-        
-        def __hash__(self):
-            """
-            The hash of a feature state is the hash of its features. For use as a dictionary key for Q-values and counts. 
-            """
-            return hash((self.pacmanPosition, self.ghostPositions, self.foodPositions))
+    def __eq__(self, other):
+        """
+        Two feature states are equal if their board features match.
+        """
+        return (
+            isinstance(other, GameStateFeatures) and
+            self.pacmanPosition == other.pacmanPosition and
+            self.ghostPositions == other.ghostPositions and
+            self.foodPositions == other.foodPositions
+        )
+    
+    def __hash__(self):
+        """
+        The hash of a feature state is the hash of its features. For use as a dictionary key for Q-values and counts. 
+        """
+        return hash((self.pacmanPosition, self.ghostPositions, self.foodPositions))
 
 
 class QLearnAgent(Agent):
@@ -110,6 +107,9 @@ class QLearnAgent(Agent):
         self.numTraining = int(numTraining)
         # Count the number of games we have played
         self.episodesSoFar = 0
+
+        self.qValues = {}
+        self.counts = {}     #keeps track of how many times we've tried a specific move 
 
     # Accessor functions for the variable episodesSoFar controlling learning
     def incrementEpisodesSoFar(self):
@@ -180,8 +180,10 @@ class QLearnAgent(Agent):
         Returns:
             q_value: the maximum estimated Q-value attainable from the state
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        # Returns the maximum Q-value over all possible actions in a state.
+        # Unseen actions default to Q = 0 via getQValue.
+        actions = [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]
+        return max(self.getQValue(state, a) for a in actions)
 
     # WARNING: You will be tested on the functionality of this method
     # DO NOT change the function signature
@@ -191,7 +193,8 @@ class QLearnAgent(Agent):
               reward: float,
               nextState: GameStateFeatures):
         """
-        Performs a Q-learning update
+        Performs a Q-learning update using the following rule:
+            Q(state, action) ← Q(state, action) + α(reward +  γ * max_a' Q(nextState, a') - Q(state, action))
 
         Args:
             state: the initial state
@@ -199,8 +202,19 @@ class QLearnAgent(Agent):
             nextState: the resulting state
             reward: the reward received on this trajectory
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        # Current estimate of Q(state, action)
+        currentQValue = self.getQValue(state, action)
+
+        # Estimate of target value
+        target = reward + self.getGamma() * self.maxQValue(nextState)
+
+        # Apply the update rule
+        newQValue = currentQValue + self.getAlpha() * (target - currentQValue)
+
+        # Store the new Q-value
+        self.qValues[(state, action)] = newQValue
+
+
 
     # WARNING: You will be tested on the functionality of this method
     # DO NOT change the function signature
@@ -251,8 +265,12 @@ class QLearnAgent(Agent):
         Returns:
             The exploration value
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        # Encourages exploration by prioritising actions tried fewer than maxAttempts times.
+        # Otherwise returns the estimated utility(greedy behaviour).
+
+        if counts < self.maxAttempts:
+            return float("inf")
+        return utility
 
     # WARNING: You will be tested on the functionality of this method
     # DO NOT change the function signature
