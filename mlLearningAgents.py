@@ -151,7 +151,8 @@ class QLearnAgent(Agent):
             The reward assigned for the given trajectory
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        return endState.getScore() - startState.getScore()
+        
 
     # WARNING: You will be tested on the functionality of this method
     # DO NOT change the function signature
@@ -214,7 +215,7 @@ class QLearnAgent(Agent):
             action: Action taken
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        self.counts[(state, action)] = self.getCount(state, action) + 1
 
     # WARNING: You will be tested on the functionality of this method
     # DO NOT change the function signature
