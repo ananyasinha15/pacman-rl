@@ -111,6 +111,9 @@ class QLearnAgent(Agent):
         self.qValues = {}
         self.counts = {}     #keeps track of how many times we've tried a specific move 
 
+        self.prevState = None
+        self.prevAction = None
+
     # Accessor functions for the variable episodesSoFar controlling learning
     def incrementEpisodesSoFar(self):
         self.episodesSoFar += 1
@@ -288,24 +291,48 @@ class QLearnAgent(Agent):
         Returns:
             The action to take
         """
-        # The data we have about the state of the game
+        training = self.getEpisodesSoFar() < self.getNumTraining()
+        stateFeatures = GameStateFeatures(state)
+
+        if training and self.prevState is not None and self.prevAction is not None:
+            reward = self.computeReward(self.prevState, state)
+            prevStateFeatures = GameStateFeatures(self.prevState)
+            self.learn(prevStateFeatures, self.prevAction, reward, stateFeatures)
+
         legal = state.getLegalPacmanActions()
         if Directions.STOP in legal:
             legal.remove(Directions.STOP)
+        
+        if len(legal) == 0:
+            return Directions.STOP
+        
+        bestScore = float("-inf")
+        bestActions = []
 
-        # logging to help you understand the inputs, feel free to remove
-        print("Legal moves: ", legal)
-        print("Pacman position: ", state.getPacmanPosition())
-        print("Ghost positions:", state.getGhostPositions())
-        print("Food locations: ")
-        print(state.getFood())
-        print("Score: ", state.getScore())
+        for action in legal:
+            qValue = self.getQValue(stateFeatures, action)
 
-        stateFeatures = GameStateFeatures(state)
+            if training: 
+                count = self.getCount(stateFeatures, action)
+                score = self.explorationFn(qValue, count)
+            else:
+                score = qValue
+            
+            if score > bestScore:
+                bestScore = score
+                bestActions = [action]
+            elif score == bestScore:
+                bestActions.append(action)
+        
+        chosenAction = random.choice(bestActions)
 
-        # Now pick what action to take.
-        # The current code shows how to do that but just makes the choice randomly.
-        return random.choice(legal)
+        if training:
+            self.updateCount(stateFeatures, chosenAction)
+        
+        self.prevState = state
+        self.prevAction = chosenAction
+
+        return chosenAction
 
     def final(self, state: GameState):
         """
@@ -315,6 +342,15 @@ class QLearnAgent(Agent):
         Args:
             state: the final game state
         """
+        # Learn from the final transition into a win/loss state
+        if self.prevState is not None and self.prevAction is not None:
+            reward = self.computeReward(self.prevState, state)
+            self.learn(GameStateFeatures(self.prevState), self.prevAction, reward, GameStateFeatures(state))
+
+        # Reset per-episode transition memory
+        self.prevState = None
+        self.prevAction = None
+
         print(f"Game {self.getEpisodesSoFar()} just ended!")
 
         # Keep track of the number of games played, and set learning
