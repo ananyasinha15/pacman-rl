@@ -30,6 +30,7 @@ import random
 from pacman import Directions, GameState
 from pacman_utils.game import Agent
 from pacman_utils import util
+from pacman_utils.util import flipCoin, manhattanDistance
 
 
 class GameStateFeatures:
@@ -53,11 +54,26 @@ class GameStateFeatures:
         # Tuple of ghost positions
         self.ghostPositions = tuple(state.getGhostPositions())
 
-        # Tuple of food locations
-        self.foodPositions = tuple(sorted(state.getFood().asList()))
+        #We first calculate the distance to every ghost
+        #If this is within 2 steps, its dangerously close, so we highlight this to pacman
+        ghostDistances = []
+        for g in state.getGhostPositions():
+            ghostDistances.append(manhattanDistance(self.pacmanPosition, g))
+        self.ghostClose = min(ghostDistances) <= 2  
+       
+        #We want to calculate the nearest food distance, and how many there are 
+        #When there are few pellets left, we want pacman to prioritise reach this
+        #because otherwise, the pacman will just continuously avoid the ghost instead 
+        foodList = state.getFood().asList()
+        if foodList:
+            foodDistances = []  
+            for f in foodList:
+                foodDistances.append(manhattanDistance(self.pacmanPosition, f))
+            self.nearestFoodDist = min(foodDistances)
+        else:
+            self.nearestFoodDist = 0
+        self.foodCount = len(foodList)
 
-        # Current score
-        self.score = state.getScore()
 
     def __eq__(self, other):
         """
@@ -67,15 +83,18 @@ class GameStateFeatures:
             isinstance(other, GameStateFeatures) and
             self.pacmanPosition == other.pacmanPosition and
             self.ghostPositions == other.ghostPositions and
-            self.foodPositions == other.foodPositions
+            self.ghostClose == other.ghostClose and
+            self.nearestFoodDist == other.nearestFoodDist and
+            self.foodCount == other.foodCount
         )
+
+
     
     def __hash__(self):
         """
         The hash of a feature state is the hash of its features. For use as a dictionary key for Q-values and counts. 
         """
-        return hash((self.pacmanPosition, self.ghostPositions, self.foodPositions))
-
+        return hash((self.pacmanPosition, self.ghostPositions, self.ghostClose, self.nearestFoodDist, self.foodCount))
 
 class QLearnAgent(Agent):
 
@@ -306,25 +325,33 @@ class QLearnAgent(Agent):
         if len(legal) == 0:
             return Directions.STOP
         
-        bestScore = float("-inf")
-        bestActions = []
 
-        for action in legal:
-            qValue = self.getQValue(stateFeatures, action)
+        #use epsilon greedy, i.e. with probability epsilon, pick a random action 
+        #Prevnts pacman from continuing to exploit when its not useful 
+        if training and flipCoin(self.epsilon):
+            chosenAction = random.choice(legal)
+        else:
+            bestScore = float("-inf")
+            bestActions = []
 
-            if training: 
-                count = self.getCount(stateFeatures, action)
-                score = self.explorationFn(qValue, count)
-            else:
-                score = qValue
+            for action in legal:
+                qValue = self.getQValue(stateFeatures, action)
+
+                if training: 
+                    count = self.getCount(stateFeatures, action)
+                    score = self.explorationFn(qValue, count)
+                else:
+                    score = qValue
+                
+                if score > bestScore:
+                    bestScore = score
+                    bestActions = [action]
+                elif score == bestScore:
+                    bestActions.append(action)
             
-            if score > bestScore:
-                bestScore = score
-                bestActions = [action]
-            elif score == bestScore:
-                bestActions.append(action)
-        
-        chosenAction = random.choice(bestActions)
+            #this needs to be in this clause because otherwise bestActions is never defined,
+            #but still gets called
+            chosenAction = random.choice(bestActions)
 
         if training:
             self.updateCount(stateFeatures, chosenAction)
