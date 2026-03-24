@@ -74,6 +74,8 @@ class GameStateFeatures:
             self.nearestFoodDist = 0
         self.foodCount = len(foodList)
 
+        # Current score
+        self.score = state.getScore()
 
     def __eq__(self, other):
         """
