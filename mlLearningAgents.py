@@ -61,18 +61,7 @@ class GameStateFeatures:
             ghostDistances.append(manhattanDistance(self.pacmanPosition, g))
         self.ghostClose = min(ghostDistances) <= 2  
        
-        #We want to calculate the nearest food distance, and how many there are 
-        #When there are few pellets left, we want pacman to prioritise reach this
-        #because otherwise, the pacman will just continuously avoid the ghost instead 
-        foodList = state.getFood().asList()
-        if foodList:
-            foodDistances = []  
-            for f in foodList:
-                foodDistances.append(manhattanDistance(self.pacmanPosition, f))
-            self.nearestFoodDist = min(foodDistances)
-        else:
-            self.nearestFoodDist = 0
-        self.foodCount = len(foodList)
+        self.foodPositions = tuple(sorted(state.getFood().asList()))
 
         # Current score
         self.score = state.getScore()
@@ -86,8 +75,7 @@ class GameStateFeatures:
             self.pacmanPosition == other.pacmanPosition and
             self.ghostPositions == other.ghostPositions and
             self.ghostClose == other.ghostClose and
-            self.nearestFoodDist == other.nearestFoodDist and
-            self.foodCount == other.foodCount
+            self.foodPositions == other.foodPositions
         )
 
 
@@ -96,7 +84,7 @@ class GameStateFeatures:
         """
         The hash of a feature state is the hash of its features. For use as a dictionary key for Q-values and counts. 
         """
-        return hash((self.pacmanPosition, self.ghostPositions, self.ghostClose, self.nearestFoodDist, self.foodCount))
+        return hash((self.pacmanPosition, self.ghostPositions, self.ghostClose, self.foodPositions))
 
 class QLearnAgent(Agent):
 
