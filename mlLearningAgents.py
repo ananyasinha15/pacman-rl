@@ -56,15 +56,21 @@ class GameStateFeatures:
 
         #We first calculate the distance to every ghost
         #If this is within 2 steps, its dangerously close, so we highlight this to pacman
-        ghostDistances = []
-        for g in state.getGhostPositions():
-            ghostDistances.append(manhattanDistance(self.pacmanPosition, g))
-        self.ghostClose = min(ghostDistances) <= 2  
+
+        #ghostDistances = []
+        #for g in state.getGhostPositions():
+        #    ghostDistances.append(manhattanDistance(self.pacmanPosition, g))
+        #self.ghostClose = min(ghostDistances) <= 2
+
+        self.ghostDistances = tuple(
+            manhattanDistance(self.pacmanPosition, g)
+            for g in self.ghostPositions
+        )
        
         self.foodPositions = tuple(sorted(state.getFood().asList()))
 
         # Current score
-        self.score = state.getScore()
+        #self.score = state.getScore()
 
     def __eq__(self, other):
         """
@@ -74,7 +80,7 @@ class GameStateFeatures:
             isinstance(other, GameStateFeatures) and
             self.pacmanPosition == other.pacmanPosition and
             self.ghostPositions == other.ghostPositions and
-            self.ghostClose == other.ghostClose and
+            self.ghostDistances == other.ghostDistances and
             self.foodPositions == other.foodPositions
         )
 
@@ -84,16 +90,16 @@ class GameStateFeatures:
         """
         The hash of a feature state is the hash of its features. For use as a dictionary key for Q-values and counts. 
         """
-        return hash((self.pacmanPosition, self.ghostPositions, self.ghostClose, self.foodPositions))
+        return hash((self.pacmanPosition, self.ghostPositions, self.ghostDistances, self.foodPositions))
 
 class QLearnAgent(Agent):
 
     def __init__(self,
-                 alpha: float = 0.2,
-                 epsilon: float = 0.05,
-                 gamma: float = 0.8,
+                 alpha: float = 0.3,
+                 epsilon: float = 0.1,
+                 gamma: float = 0.9,
                  maxAttempts: int = 30,
-                 numTraining: int = 10):
+                 numTraining: int = 2000):
         """
         These values are either passed from the command line (using -a alpha=0.5,...)
         or are set to the default values above.
@@ -154,17 +160,48 @@ class QLearnAgent(Agent):
     @staticmethod
     def computeReward(startState: GameState,
                       endState: GameState) -> float:
-        """
-        Args:
-            startState: A starting state
-            endState: A resulting state
 
-        Returns:
-            The reward assigned for the given trajectory
-        """
-        "*** YOUR CODE HERE ***"
-        return endState.getScore() - startState.getScore()
-        
+        if endState.isLose():
+            return -500
+        if endState.isWin():
+            return 500
+
+        reward = 0
+
+        startPos = startState.getPacmanPosition()
+        endPos = endState.getPacmanPosition()
+
+        # reward for eating food
+        startFood = startState.getFood().asList()
+        endFood = endState.getFood().asList()
+
+        # if food was eaten
+        if len(endFood) < len(startFood):
+            reward += 100
+
+        if startFood and endFood:
+            startDist = min(manhattanDistance(startPos, f) for f in startFood)
+            endDist = min(manhattanDistance(endPos, f) for f in endFood)
+
+            # if approaches closer to food
+            if endDist < startDist:
+                reward += 10
+            else:
+                reward -= 2
+
+        # ghost distance
+        ghosts = endState.getGhostPositions()
+        minGhostDist = min(manhattanDistance(endPos, g) for g in ghosts)
+
+        if minGhostDist <= 1:
+            reward -= 200
+        elif minGhostDist <= 2:
+            reward -= 50
+
+        # living penalty (prevents looping)
+        reward -= 2
+
+        return reward
 
     # WARNING: You will be tested on the functionality of this method
     # DO NOT change the function signature
@@ -300,6 +337,14 @@ class QLearnAgent(Agent):
         Returns:
             The action to take
         """
+
+        REVERSE = {
+            Directions.NORTH: Directions.SOUTH,
+            Directions.SOUTH: Directions.NORTH,
+            Directions.EAST: Directions.WEST,
+            Directions.WEST: Directions.EAST
+        }
+
         training = self.getEpisodesSoFar() < self.getNumTraining()
         stateFeatures = GameStateFeatures(state)
 
@@ -330,6 +375,9 @@ class QLearnAgent(Agent):
                 if training: 
                     count = self.getCount(stateFeatures, action)
                     score = self.explorationFn(qValue, count)
+
+                    if self.prevAction and action == REVERSE.get(self.prevAction):
+                        score -= 10
                 else:
                     score = qValue
                 
