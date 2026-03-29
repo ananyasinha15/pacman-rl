@@ -54,23 +54,17 @@ class GameStateFeatures:
         # Tuple of ghost positions
         self.ghostPositions = tuple(state.getGhostPositions())
 
-        #We first calculate the distance to every ghost
-        #If this is within 2 steps, its dangerously close, so we highlight this to pacman
-
-        #ghostDistances = []
-        #for g in state.getGhostPositions():
-        #    ghostDistances.append(manhattanDistance(self.pacmanPosition, g))
-        #self.ghostClose = min(ghostDistances) <= 2
-
+        #calculate ghost distances from pacman
         self.ghostDistances = tuple(
             manhattanDistance(self.pacmanPosition, g)
             for g in self.ghostPositions
         )
        
+        #store list of food positions 
         self.foodPositions = tuple(sorted(state.getFood().asList()))
 
         # Current score
-        #self.score = state.getScore()
+        self.score = state.getScore()
 
     def __eq__(self, other):
         """
@@ -216,7 +210,8 @@ class QLearnAgent(Agent):
         Returns:
             Q(state, action)
         """
-        "*** YOUR CODE HERE ***"
+
+        #default to 0.0 if state, action pair is unseen 
         return self.qValues.get((state, action), 0.0)
 
     # WARNING: You will be tested on the functionality of this method
@@ -277,8 +272,8 @@ class QLearnAgent(Agent):
             state: Starting state
             action: Action taken
         """
-        "*** YOUR CODE HERE ***"
-        self.counts[(state, action)] = self.getCount(state, action) + 1
+
+        self.counts[(state, action)] = self.getCount(state, action) + 1 #increment visit count
 
     # WARNING: You will be tested on the functionality of this method
     # DO NOT change the function signature
@@ -293,8 +288,8 @@ class QLearnAgent(Agent):
         Returns:
             Number of times that the action has been taken in a given state
         """
-        "*** YOUR CODE HERE ***"
-        return self.counts.get((state, action), 0)
+
+        return self.counts.get((state, action), 0) #default to 0 if unseen
 
     # WARNING: You will be tested on the functionality of this method
     # DO NOT change the function signature
@@ -361,8 +356,8 @@ class QLearnAgent(Agent):
             return Directions.STOP
         
 
-        #use epsilon greedy, i.e. with probability epsilon, pick a random action 
-        #Prevnts pacman from continuing to exploit when its not useful 
+        #use epsilon greedy, i.e. with probability epsilon, pick a random action (exploration)
+        #Prevnts pacman from always exploiting 
         if training and flipCoin(self.epsilon):
             chosenAction = random.choice(legal)
         else:
